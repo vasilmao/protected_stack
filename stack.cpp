@@ -15,10 +15,12 @@ struct dynamic_stack *dynamic_stack_construct(uint64_t start_size, uint64_t delt
     st->delta = delta;
     st->mode = mode;
     st->constant = constant;
+    ASSERT_OK(st);
     return st;
 }
 
 void dynamic_stack_increase_capacity(struct dynamic_stack *st) {
+    ASSERT_OK(st);
     if (st->size < st->capacity) {
         return ;
     }
@@ -40,6 +42,7 @@ void dynamic_stack_increase_capacity(struct dynamic_stack *st) {
 }
 
 void dynamic_stack_decrease_capacity(struct dynamic_stack *st) {
+    ASSERT_OK(st);
     if (st->mode == MODE_PLUS_DELTA) {
         if (st->size + 30 + st->delta <= st->capacity) {
             st->array = (double *)realloc(st->array, (st->capacity - st->delta) * sizeof(double));
@@ -47,7 +50,7 @@ void dynamic_stack_decrease_capacity(struct dynamic_stack *st) {
             st->capacity -= st->delta;
         }
     } else if (st->mode == MODE_X_CONSTANT) {
-        if (st->size * st->constant + 30 <= st->capacity) {
+        if ((st->size + 30) * st->constant <= st->capacity) {
             st->array = (double *)realloc(st->array, (st->capacity / st->constant) * sizeof(double));
             assert(st->array);
             st->capacity /= st->constant;
@@ -56,11 +59,13 @@ void dynamic_stack_decrease_capacity(struct dynamic_stack *st) {
 }
 
 void dynamic_stack_push(struct dynamic_stack *st, double el) {
+    ASSERT_OK(st);
     dynamic_stack_increase_capacity(st);
     st->array[st->size++] = el;
 }
 
 void dynamic_stack_pop(struct dynamic_stack *st) {
+    ASSERT_OK(st);
     assert(st->size > 0);
     dynamic_stack_decrease_capacity(st);
     st->size--;
@@ -68,20 +73,24 @@ void dynamic_stack_pop(struct dynamic_stack *st) {
 
 
 int dynamic_stack_get_top(struct dynamic_stack *st) {
+    ASSERT_OK(st);
     assert(st->size > 0);
     return st->array[st->size - 1];
 }
 
 void dynamic_stack_clear(struct dynamic_stack *st) {
+    ASSERT_OK(st);
     st->size = 0;
 }
 
 void dynamic_stack_destroy(struct dynamic_stack *st) {
+    ASSERT_OK(st);
     free(st->array);
     free(st);
 }
 
 StackErrors dynamic_stack_ok(struct dynamic_stack *st) {
+    assert(st);
     if (st->size > st->capacity) {
         return OVERFLOWERROR;
     }
@@ -105,104 +114,48 @@ StackErrors dynamic_stack_ok(struct dynamic_stack *st) {
 }
 
 void dynamic_stack_dump(struct dynamic_stack *st) {
+    ASSERT_OK(st);
     StackErrors res = dynamic_stack_ok(st);
+    FILE* output = open("stackdump.txt", "w");
+    assert(output);
     if (res == STACKOK) {
-        printf("dynamic_stack (ok) [%p] {\n", st);
-        printf("\tsize = %ld\n\tcapacity = %ld\n\tdelta = %ld\n\tconstant = %f\n\tmode = %d\n", st->size, st->capacity, st->delta, st->constant, st->mode);
-        printf("\tarray [%p] {\n", st->array);
+        fprintf(output, "dynamic_stack (ok) [%p] {\n", st);
+        fprintf(output, "\tsize = %ld\n\tcapacity = %ld\n\tdelta = %ld\n\tconstant = %f\n\tmode = %d\n", st->size, st->capacity, st->delta, st->constant, st->mode);
+        fprintf(output, "\tarray [%p] {\n", st->array);
         for (int i = 0; i < st->capacity; ++i) {
             if (i < st->size) {
-                printf("\t\t*[%d] = %f\n", i, st->array[i]);
+                fprintf(output, "\t\t*[%d] = %f\n", i, st->array[i]);
             } else {
-                printf("\t\t [%d] = %f (!!POISON!!)\n", i, st->array[i]);
+                fprintf(output, "\t\t [%d] = %f (!!POISON!!)\n", i, st->array[i]);
             }
         }
-        printf("\t}\n");
-        printf("}\n");
+        fprintf(output, "\t}\n");
+        fprintf(output, "}\n");
     } else {
-        printf("dynamic stack (");
+        fprintf(output, "dynamic stack (");
         if (res == OVERFLOWERROR) {
-            printf("OVERFLOWERROR");
+            fprintf(output, "OVERFLOWERROR");
         } else if (res == POISONERROR) {
-            printf("POISONERROR");
+            fprintf(output, "POISONERROR");
         } else if (res == CAPACITYERROR) {
-            printf("CAPACITYERROR");
+            fprintf(output, "CAPACITYERROR");
         } else if (res == SIZEERROR) {
-            printf("SIZEERROR");
+            fprintf(output, "SIZEERROR");
         }
-        printf(") [%p] {\n", st);
-        printf("\tsize = %ld\n\tcapacity = %ld\n\tdelta = %ld\n\tconstant = %f\n\tmode = %d\n", st->size, st->capacity, st->delta, st->constant, st->mode);
-        printf("\tarray [%p] {\n", st->array);
+        fprintf(output, ") [%p] {\n", st);
+        fprintf(output, "\tsize = %ld\n\tcapacity = %ld\n\tdelta = %ld\n\tconstant = %f\n\tmode = %d\n", st->size, st->capacity, st->delta, st->constant, st->mode);
+        fprintf(output, "\tarray [%p] {\n", st->array);
         for (int i = 0; i < st->capacity; ++i) {
             if (i < st->size) {
-                printf("\t\t*[%d] = %f\n", i, st->array[i]);
+                fprintf(output, "\t\t*[%d] = %f\n", i, st->array[i]);
             } else {
-                printf("\t\t [%d] = %f (!!POISON!!)\n", i, st->array[i]);
+                fprintf(output, "\t\t [%d] = %f (!!POISON!!)\n", i, st->array[i]);
             }
         }
-        printf("\t}\n");
-        printf("}\n");
+        fprintf(output, "\t}\n");
+        fprintf(output, "}\n");
     }
 }
-
-
-
-
-struct stack *stack_construct() {
-    return (struct stack *) calloc(1, sizeof(struct stack));
-}
-
-void stack_push(struct stack *st, int el) {
-    assert(st);
-
-    if (st->size == 0) {
-        st->last_node = (node *)calloc(1, sizeof(struct node));
-        st->last_node->element = el;
-        st->last_node->minimum = el;
-        st->last_node->next = NULL;
-    } else {
-        struct node *new_node = (node *)calloc(1, sizeof(struct node));
-        new_node->element = el;
-        new_node->minimum = el < st->last_node->minimum ? el : st->last_node->minimum;
-        new_node->next = st->last_node;
-        st->last_node = new_node;
-    }
-    st->size++;
-}
-
-void stack_pop(struct stack *st) {
-    assert(st);
-    assert(st->size > 0);
-    struct node *old_node = st->last_node;
-    st->last_node = st->last_node->next;
-    free(old_node);
-    st->size--;
-}
-
-int stack_get_top(struct stack *st) {
-    assert(st);
-    assert(st->size > 0);
-    return st->last_node->element;
-}
-
-int stack_get_minimum(struct stack *st) {
-    assert(st);
-    assert(st->size > 0);
-    return st->last_node->minimum;
-}
-
-void stack_clear(struct stack *st) {
-    while (st->size > 0) {
-        stack_pop(st);
-    }
-    //free(st);
-}
-
-void stack_destroy(struct stack *st) {
-    stack_clear(st);
-    free(st);
-}
-
 
 
 int min(int a, int b) {

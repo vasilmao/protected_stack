@@ -30,19 +30,17 @@ struct node {
     struct node *next;
 };
 
-struct stack {
-    struct node *last_node;
-    uint64_t size;
-};
 
 struct dynamic_stack {
-    double *array;
+    uint64_t kanareyka1;
+    double* array;
     uint64_t size;
     uint64_t capacity;
     uint64_t delta;
     uint64_t coefficient;
     float constant;
     char mode;
+    uint64_t kanareyka2;
 };
 
 
@@ -65,16 +63,3 @@ void dynamic_stack_destroy(struct dynamic_stack *st);
 void dynamic_stack_dump(struct dynamic_stack *st);
 
 StackErrors dynamic_stack_ok(struct dynamic_stack *st);
-
-
-struct stack *stack_construct();
-
-void stack_push(struct stack *st, int el);
-
-void stack_pop(struct stack *st);
-
-int stack_get_top(struct stack *st);
-
-int stack_get_minimum(struct stack *st);
-
-void stack_clear(struct stack *st);
