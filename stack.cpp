@@ -1,13 +1,17 @@
 #include "stack.h"
 
-const int MODE_X_CONSTANT = 1;
-const int MODE_PLUS_DELTA = 2;
-const long long KANAREYKA_L = 0xDEADBEEF;
-const long long KANAREYKA_R = 0xABCDEABC;
+const char MODE_X_CONSTANT      = 1;
+const char MODE_PLUS_DELTA      = 2;
+const long long KANAREYKA_L_ST = 0xBADBEDAA;
+const long long KANAREYKA_R_ST = 0xABACADAF;
+const long long KANAREYKA_L    = 0xDEADBEEF;
+const long long KANAREYKA_R    = 0xABCDEABC;
 
 
 struct dynamic_stack *dynamic_stack_construct(uint64_t start_size, uint64_t delta, float constant, char mode) {
     struct dynamic_stack *st = (struct dynamic_stack *)calloc(1, sizeof(dynamic_stack));
+    st->kanareyka_l = KANAREYKA_L_ST;
+    st->kanareyka_r = KANAREYKA_R_ST;
     st->size = 0;
     st->capacity = start_size;
     st->array = (Elem_t *)calloc(start_size * sizeof(Elem_t) + 2 * sizeof(long long), 1);
@@ -111,6 +115,22 @@ StackErrors dynamic_stack_ok(struct dynamic_stack *st) {
         return SIZEERROR;
     }
 
+    if (*(long long*)((char*)st->array - sizeof(long long)) != KANAREYKA_L) {
+        return KANAREYKAERROR;
+    }
+
+    if (*(long long *)((char*)st->array + st->capacity * sizeof(Elem_t)) != KANAREYKA_R) {
+        return KANAREYKAERROR;
+    }
+
+    if (st->kanareyka_l != KANAREYKA_L_ST) {
+        return KANAREYKAERROR;
+    }
+
+    if (st->kanareyka_r != KANAREYKA_R_ST) {
+        return KANAREYKAERROR;
+    }
+
 
     for (int i = 0; i < st->capacity; ++i) {
         if (isnan(st->array[i]) && i < st->size) {
@@ -128,18 +148,24 @@ void dynamic_stack_dump(struct dynamic_stack *st) {
     assert(output);
     if (res == STACKOK) {
         fprintf(output, "dynamic_stack (ok) [%p] {\n", st);
-        fprintf(output, "\tsize = %ld\n\tcapacity = %ld\n\tdelta = %ld\n\tconstant = %f\n\tmode = %d\n", st->size, st->capacity, st->delta, st->constant, st->mode);
-        fprintf(output, "\tLEFT  KANAREYKA = %X (must be %X)\n", *(long long*)((char*)st->array - sizeof(long long)), KANAREYKA_L);
+        fprintf(output, "\tLEFT  KANAREYKA = %8X ", st->kanareyka_l); fprintf(output, "(must be %X)\n", KANAREYKA_L_ST);
+        fprintf(output, "\tsize            = %llu\n", st->size);
+        fprintf(output, "\tcapacity        = %llu\n", st->capacity);
+        fprintf(output, "\tdelta           = %llu\n", st->delta);
+        fprintf(output, "\tconstant        = %f  \n",   st->constant);
+        fprintf(output, "\tmode            = %d  \n",   st->mode);
+        fprintf(output, "\tRIGHT KANAREYKA = %8X ", st->kanareyka_r); fprintf(output, "(must be %X)\n", KANAREYKA_R_ST);
         fprintf(output, "\tarray [%p] {\n", st->array);
+        fprintf(output, "\t\tLEFT  KANAREYKA = %8X ", *(long long*)((char*)st->array - sizeof(long long)));
+        fprintf(output, "(must be %X)\n", KANAREYKA_L);
         for (int i = 0; i < st->capacity; ++i) {
             if (i < st->size) {
-                fprintf(output, "\t\t*[%d] = %f\n", i, st->array[i]);
+                fprintf(output, "\t   *[%d] = %lf\n", i, st->array[i]);
             } else {
-                fprintf(output, "\t\t [%d] = %f (!!POISON!!)\n", i, st->array[i]);
+                fprintf(output, "\t\t[%d] = %lf (!!POISON!!)\n", i, st->array[i]);
             }
         }
         fprintf(output, "\t}\n");
-        fprintf(output, "\tRIGHT KANAREYKA = %X (must be %X)\n", *(long long *)((char*)st->array + st->capacity * sizeof(Elem_t)), KANAREYKA_R);
         fprintf(output, "}\n");
     } else {
         fprintf(output, "dynamic stack (");
@@ -151,20 +177,30 @@ void dynamic_stack_dump(struct dynamic_stack *st) {
             fprintf(output, "CAPACITYERROR");
         } else if (res == SIZEERROR) {
             fprintf(output, "SIZEERROR");
+        } else if (res == KANAREYKAERROR) {
+            fprintf(output, "KANAREYKAERROR");
         }
         fprintf(output, ") [%p] {\n", st);
-        fprintf(output, "\tsize = %ld\n\tcapacity = %ld\n\tdelta = %ld\n\tconstant = %f\n\tmode = %d\n", st->size, st->capacity, st->delta, st->constant, st->mode);
-        fprintf(output, "\tLEFT  KANAREYKA = %X (must be %X)\n", *(long long*)((char*)st->array - sizeof(long long)), KANAREYKA_L);
+        fprintf(output, "\tLEFT  KANAREYKA = %8X ", st->kanareyka_l); fprintf(output, "(must be %X)\n", KANAREYKA_L_ST);
+        fprintf(output, "\tsize            = %llu\n", st->size);
+        fprintf(output, "\tcapacity        = %llu\n", st->capacity);
+        fprintf(output, "\tdelta           = %llu\n", st->delta);
+        fprintf(output, "\tconstant        = %f  \n",   st->constant);
+        fprintf(output, "\tmode            = %d  \n",   st->mode);
+        fprintf(output, "\tRIGHT KANAREYKA = %8X ", st->kanareyka_r); fprintf(output, "(must be %X)\n", KANAREYKA_R_ST);
         fprintf(output, "\tarray [%p] {\n", st->array);
+        fprintf(output, "\t\tLEFT  ARRAY KANAREYKA = %8X ", *(long long*)((char*)st->array - sizeof(long long)));
+        fprintf(output, "(must be %X)\n", KANAREYKA_L);
         for (int i = 0; i < st->capacity; ++i) {
             if (i < st->size) {
-                fprintf(output, "\t\t*[%d] = %f\n", i, st->array[i]);
+                fprintf(output, "\t   *[%d] = %lf\n", i, st->array[i]);
             } else {
-                fprintf(output, "\t\t [%d] = %f (!!POISON!!)\n", i, st->array[i]);
+                fprintf(output, "\t\t[%d] = %lf (!!POISON!!)\n", i, st->array[i]);
             }
         }
+        fprintf(output, "\t\tRIGHT ARRAY KANAREYKA = %8X ", *(long long *)((char*)st->array + st->capacity * sizeof(Elem_t)));
+        fprintf(output, "(must be %X)\n", KANAREYKA_R);
         fprintf(output, "\t}\n");
-        fprintf(output, "\tRIGHT KANAREYKA = %X (must be %X)\n", *(long long *)((char*)st->array + st->capacity * sizeof(Elem_t)), KANAREYKA_R);
         fprintf(output, "}\n");
     }
 }

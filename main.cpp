@@ -10,6 +10,7 @@ int main() {
         //printf("%d YAY\n", i);
     }
     //st->size = 30;
+    st->array[-1] = 12345;
     //st->array[15] = 10;
     ASSERT_OK(st);
     /*for(int i = 0; i < n / 2; ++i) {

@@ -7,8 +7,10 @@
 
 typedef double Elem_t;
 
-extern const int MODE_PLUS_DELTA;
-extern const int MODE_X_CONSTANT;
+extern const char MODE_PLUS_DELTA;
+extern const char MODE_X_CONSTANT;
+extern const long long KANAREYKA_L_ST;
+extern const long long KANAREYKA_R_ST;
 extern const long long KANAREYKA_L;
 extern const long long KANAREYKA_R;
 
@@ -31,7 +33,7 @@ enum StackErrors {
 
 
 struct dynamic_stack {
-    uint64_t kanareyka1;
+    long long kanareyka_l;
     Elem_t* array;
     uint64_t size;
     uint64_t capacity;
@@ -39,7 +41,7 @@ struct dynamic_stack {
     uint64_t coefficient;
     float constant;
     char mode;
-    uint64_t kanareyka2;
+    long long kanareyka_r;
 };
 
 
