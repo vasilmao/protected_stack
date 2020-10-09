@@ -5,8 +5,12 @@
 #include <stdint.h>
 #include <math.h>
 
+typedef double Elem_t;
+
 extern const int MODE_PLUS_DELTA;
 extern const int MODE_X_CONSTANT;
+extern const long long KANAREYKA_L;
+extern const long long KANAREYKA_R;
 
 
 enum StackErrors {
@@ -14,7 +18,8 @@ enum StackErrors {
     OVERFLOWERROR,
     POISONERROR,
     SIZEERROR,
-    CAPACITYERROR
+    CAPACITYERROR,
+    KANAREYKAERROR
 };
 
 
@@ -24,16 +29,10 @@ enum StackErrors {
     #define ASSERT_OK(st)
 #endif
 
-struct node {
-    int element;
-    int minimum;
-    struct node *next;
-};
-
 
 struct dynamic_stack {
     uint64_t kanareyka1;
-    double* array;
+    Elem_t* array;
     uint64_t size;
     uint64_t capacity;
     uint64_t delta;
@@ -50,7 +49,7 @@ void dynamic_stack_increase_capacity(struct dynamic_stack *st);
 
 void dynamic_stack_decrease_capacity(struct dynamic_stack *st);
 
-void dynamic_stack_push(struct dynamic_stack *st, double el);
+void dynamic_stack_push(struct dynamic_stack *st, Elem_t el);
 
 void dynamic_stack_pop(struct dynamic_stack *st);
 

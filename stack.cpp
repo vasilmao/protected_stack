@@ -2,13 +2,18 @@
 
 const int MODE_X_CONSTANT = 1;
 const int MODE_PLUS_DELTA = 2;
+const long long KANAREYKA_L = 0xDEADBEEF;
+const long long KANAREYKA_R = 0xABCDEABC;
 
 
 struct dynamic_stack *dynamic_stack_construct(uint64_t start_size, uint64_t delta, float constant, char mode) {
     struct dynamic_stack *st = (struct dynamic_stack *)calloc(1, sizeof(dynamic_stack));
     st->size = 0;
     st->capacity = start_size;
-    st->array = (double *)calloc(start_size, sizeof(double));
+    st->array = (Elem_t *)calloc(start_size * sizeof(Elem_t) + 2 * sizeof(long long), 1);
+    *(long long *)st->array = KANAREYKA_L;
+    st->array = (Elem_t *)((long long *)st->array + 1);
+    *(long long *)((char*)st->array + start_size * sizeof(Elem_t)) = KANAREYKA_R;
     for (int i = 0; i < start_size; ++i) {
         st->array[i] = NAN;
     }
@@ -25,19 +30,22 @@ void dynamic_stack_increase_capacity(struct dynamic_stack *st) {
         return ;
     }
     if (st->mode == MODE_PLUS_DELTA) {
-        st->array = (double *)realloc(st->array, (st->capacity + st->delta) * sizeof(double));
+        st->array = (Elem_t*)realloc((char*)st->array - sizeof(long long), (st->capacity + st->delta) * sizeof(Elem_t) + 2 * sizeof(long long));
+        st->array = (Elem_t*)((char*)st->array + sizeof(long long));
         assert(st->array);
         for (int i = st->capacity; i < st->capacity + st->delta; ++i) {
             st->array[i] = NAN;
         }
         st->capacity += st->delta;
+        *(long long *)((char*)st->array + st->capacity * sizeof(Elem_t)) = KANAREYKA_R;
     } else if (st->mode == MODE_X_CONSTANT) {
-        st->array = (double *)realloc(st->array, st->capacity * st->constant);
+        st->array = (Elem_t *)realloc(st->array, st->capacity * st->constant);
         assert(st->array);
         for (int i = st->capacity; i < st->capacity * st->constant; ++i) {
             st->array[i] = NAN;
         }
         st->capacity *= st->constant;
+        *(long long *)((char*)st->array + st->capacity * sizeof(Elem_t)) = KANAREYKA_R;
     }
 }
 
@@ -45,20 +53,20 @@ void dynamic_stack_decrease_capacity(struct dynamic_stack *st) {
     ASSERT_OK(st);
     if (st->mode == MODE_PLUS_DELTA) {
         if (st->size + 30 + st->delta <= st->capacity) {
-            st->array = (double *)realloc(st->array, (st->capacity - st->delta) * sizeof(double));
+            st->array = (Elem_t *)realloc(st->array, (st->capacity - st->delta) * sizeof(Elem_t));
             assert(st->array);
             st->capacity -= st->delta;
         }
     } else if (st->mode == MODE_X_CONSTANT) {
         if ((st->size + 30) * st->constant <= st->capacity) {
-            st->array = (double *)realloc(st->array, (st->capacity / st->constant) * sizeof(double));
+            st->array = (Elem_t *)realloc(st->array, (st->capacity / st->constant) * sizeof(Elem_t));
             assert(st->array);
             st->capacity /= st->constant;
         }
     }
 }
 
-void dynamic_stack_push(struct dynamic_stack *st, double el) {
+void dynamic_stack_push(struct dynamic_stack *st, Elem_t el) {
     ASSERT_OK(st);
     dynamic_stack_increase_capacity(st);
     st->array[st->size++] = el;
@@ -67,7 +75,7 @@ void dynamic_stack_push(struct dynamic_stack *st, double el) {
 void dynamic_stack_pop(struct dynamic_stack *st) {
     ASSERT_OK(st);
     assert(st->size > 0);
-    dynamic_stack_decrease_capacity(st);
+    //dynamic_stack_decrease_capacity(st);
     st->size--;
 }
 
@@ -103,6 +111,7 @@ StackErrors dynamic_stack_ok(struct dynamic_stack *st) {
         return SIZEERROR;
     }
 
+
     for (int i = 0; i < st->capacity; ++i) {
         if (isnan(st->array[i]) && i < st->size) {
             return POISONERROR;
@@ -110,17 +119,17 @@ StackErrors dynamic_stack_ok(struct dynamic_stack *st) {
             return POISONERROR;
         }
     }
-    return StackErrors::STACKOK;
+    return STACKOK;
 }
 
 void dynamic_stack_dump(struct dynamic_stack *st) {
-    ASSERT_OK(st);
     StackErrors res = dynamic_stack_ok(st);
-    FILE* output = open("stackdump.txt", "w");
+    FILE* output = fopen("stackdump.txt", "w");
     assert(output);
     if (res == STACKOK) {
         fprintf(output, "dynamic_stack (ok) [%p] {\n", st);
         fprintf(output, "\tsize = %ld\n\tcapacity = %ld\n\tdelta = %ld\n\tconstant = %f\n\tmode = %d\n", st->size, st->capacity, st->delta, st->constant, st->mode);
+        fprintf(output, "\tLEFT  KANAREYKA = %X (must be %X)\n", *(long long*)((char*)st->array - sizeof(long long)), KANAREYKA_L);
         fprintf(output, "\tarray [%p] {\n", st->array);
         for (int i = 0; i < st->capacity; ++i) {
             if (i < st->size) {
@@ -130,6 +139,7 @@ void dynamic_stack_dump(struct dynamic_stack *st) {
             }
         }
         fprintf(output, "\t}\n");
+        fprintf(output, "\tRIGHT KANAREYKA = %X (must be %X)\n", *(long long *)((char*)st->array + st->capacity * sizeof(Elem_t)), KANAREYKA_R);
         fprintf(output, "}\n");
     } else {
         fprintf(output, "dynamic stack (");
@@ -144,6 +154,7 @@ void dynamic_stack_dump(struct dynamic_stack *st) {
         }
         fprintf(output, ") [%p] {\n", st);
         fprintf(output, "\tsize = %ld\n\tcapacity = %ld\n\tdelta = %ld\n\tconstant = %f\n\tmode = %d\n", st->size, st->capacity, st->delta, st->constant, st->mode);
+        fprintf(output, "\tLEFT  KANAREYKA = %X (must be %X)\n", *(long long*)((char*)st->array - sizeof(long long)), KANAREYKA_L);
         fprintf(output, "\tarray [%p] {\n", st->array);
         for (int i = 0; i < st->capacity; ++i) {
             if (i < st->size) {
@@ -153,6 +164,7 @@ void dynamic_stack_dump(struct dynamic_stack *st) {
             }
         }
         fprintf(output, "\t}\n");
+        fprintf(output, "\tRIGHT KANAREYKA = %X (must be %X)\n", *(long long *)((char*)st->array + st->capacity * sizeof(Elem_t)), KANAREYKA_R);
         fprintf(output, "}\n");
     }
 }

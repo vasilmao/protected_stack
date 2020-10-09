@@ -9,7 +9,7 @@ int main() {
         dynamic_stack_push(st, i);
         //printf("%d YAY\n", i);
     }
-    st->size = 30;
+    //st->size = 30;
     //st->array[15] = 10;
     ASSERT_OK(st);
     /*for(int i = 0; i < n / 2; ++i) {
@@ -20,4 +20,6 @@ int main() {
         dynamic_stack_push(st, i);
         //printf("%d YuY\n", i);
     }*/
+    dynamic_stack_dump(st);
+    printf("yeah\n");
 }
