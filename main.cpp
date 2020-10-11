@@ -6,16 +6,18 @@ int main() {
     int n = 10;
     //dynamic_stack_push(st, 1);
     printf("yes\n");
-    for(int i = 0; i < n; ++i) {
+    for(int i = 0; i < 5; ++i) {
         dynamic_stack_push(st, i);
         //printf("%d YAY\n", i);
     }
-    printf("yoy\n");
-    //st->size = 30;
-    st->array[1] = 12345;
-    //st->array[15] = 10;
+    *((char*)st + 30) = 5;
     ASSERT_OK(st);
-    printf("yay\n");
+    //printf("yoy\n");
+    //st->size = 30;
+    //st->array[1] = 12345;
+    //st->array[15] = 10;
+    //ASSERT_OK(st);
+    //printf("yay\n");
     /*for(int i = 0; i < n / 2; ++i) {
         dynamic_stack_pop(st);
         //printf("%d YOY\n", i);
@@ -25,5 +27,5 @@ int main() {
         //printf("%d YuY\n", i);
     }*/
     //dynamic_stack_dump(st);
-    printf("yeah\n");
+    //printf("yeah\n");
 }
