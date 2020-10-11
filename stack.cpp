@@ -24,12 +24,12 @@ uint64_t dynamic_stack_count_hash(struct dynamic_stack *st) {
     uint64_t hash = 0;
     rol(st, sizeof(dynamic_stack));
     for (int i = 0; i < sizeof(dynamic_stack); i+= 8) {
-        hash ^= ((uint64_t *)st)+i;
+        hash ^= *(((uint64_t *)st)+i);
     }
-    ror(st, sizeof(st));
+    ror(st, sizeof(dynamic_stack));
     rol(st->array, sizeof(Elem_t));
     for (int i = 0; i < st->capacity; ++i) {
-        hash ^= (uint64_t*)st->array + i;
+        hash ^= *((uint64_t*)st->array + i);
     }
     ror(st->array, sizeof(Elem_t));
     return hash;
@@ -61,7 +61,9 @@ struct dynamic_stack *dynamic_stack_construct(uint64_t start_size, uint64_t delt
     st->delta = delta;
     st->mode = mode;
     st->constant = constant;
-    dynamic_stack_count_hash(st);
+    printf("bruh\n");
+    st->hash = dynamic_stack_count_hash(st);
+    printf("yeah\n");
     ASSERT_OK(st);
     return st;
 }
@@ -153,6 +155,7 @@ long long* get_array_kanareyka_r(struct dynamic_stack *st) {
 }
 
 StackErrors dynamic_stack_ok(struct dynamic_stack *st) {
+    printf("yes\n");
     assert(st);
     if (st->size > st->capacity) {
         return OVERFLOWERROR;
@@ -181,7 +184,7 @@ StackErrors dynamic_stack_ok(struct dynamic_stack *st) {
     if (st->kanareyka_r != KANAREYKA_R_ST) {
         return KANAREYKAERROR;
     }
-
+    printf("yes\n");
     if (dynamic_stack_check_hash(st) != STACKOK) {
         return HASHERROR;
     }
@@ -236,6 +239,8 @@ void dynamic_stack_dump(struct dynamic_stack *st) {
             fprintf(output, "SIZEERROR");
         } else if (res == KANAREYKAERROR) {
             fprintf(output, "KANAREYKAERROR");
+        } else if (res == HASHERROR) {
+            fprintf(output, "HASHERROR");
         }
         fprintf(output, ") [%p] {\n", st);
         fprintf(output, "\tLEFT  KANAREYKA = %8X ", st->kanareyka_l); fprintf(output, "(must be %X)\n", KANAREYKA_L_ST);
