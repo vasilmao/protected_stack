@@ -7,6 +7,43 @@ const long long KANAREYKA_R_ST = 0xABACADAF;
 const long long KANAREYKA_L    = 0xDEADBEEF;
 const long long KANAREYKA_R    = 0xABCDEABC;
 
+void ror(void* ptr, uint64_t size) {
+    for (int i = 0; i < size; ++i) {
+        *((unsigned char*)ptr + i) = *((unsigned char*)ptr + i) << 1 | ((*((unsigned char*)ptr + i) & (1 << 7)) >> 7);
+    }
+}
+
+void rol(void* ptr, uint64_t size) {
+    for (int i = 0; i < size; ++i) {
+        *((unsigned char*)ptr + i) = *((unsigned char*)ptr + i) >> 1 | (*((unsigned char*)ptr + i) & 1) << 7;
+    }
+}
+
+uint64_t dynamic_stack_count_hash(struct dynamic_stack *st) {
+    st->hash = 0;
+    uint64_t hash = 0;
+    rol(st, sizeof(dynamic_stack));
+    for (int i = 0; i < sizeof(dynamic_stack); i+= 8) {
+        hash ^= ((uint64_t *)st)+i;
+    }
+    ror(st, sizeof(st));
+    rol(st->array, sizeof(Elem_t));
+    for (int i = 0; i < st->capacity; ++i) {
+        hash ^= (uint64_t*)st->array + i;
+    }
+    ror(st->array, sizeof(Elem_t));
+    return hash;
+}
+
+StackErrors dynamic_stack_check_hash(struct dynamic_stack* st) {
+    uint64_t last_hash = st->hash;
+    uint64_t new_hash = dynamic_stack_count_hash(st);
+    if (new_hash != last_hash) {
+        return HASHERROR;
+    }
+    st->hash = last_hash;
+    return STACKOK;
+}
 
 struct dynamic_stack *dynamic_stack_construct(uint64_t start_size, uint64_t delta, float constant, char mode) {
     struct dynamic_stack *st = (struct dynamic_stack *)calloc(1, sizeof(dynamic_stack));
@@ -24,6 +61,7 @@ struct dynamic_stack *dynamic_stack_construct(uint64_t start_size, uint64_t delt
     st->delta = delta;
     st->mode = mode;
     st->constant = constant;
+    dynamic_stack_count_hash(st);
     ASSERT_OK(st);
     return st;
 }
@@ -41,7 +79,8 @@ void dynamic_stack_increase_capacity(struct dynamic_stack *st) {
             st->array[i] = NAN;
         }
         st->capacity += st->delta;
-        *(long long *)((char*)st->array + st->capacity * sizeof(Elem_t)) = KANAREYKA_R;
+        *get_array_kanareyka_r(st) = KANAREYKA_R;
+        //*(long long *)((char*)st->array + st->capacity * sizeof(Elem_t)) = KANAREYKA_R;
     } else if (st->mode == MODE_X_CONSTANT) {
         st->array = (Elem_t *)realloc(st->array, st->capacity * st->constant);
         assert(st->array);
@@ -49,7 +88,8 @@ void dynamic_stack_increase_capacity(struct dynamic_stack *st) {
             st->array[i] = NAN;
         }
         st->capacity *= st->constant;
-        *(long long *)((char*)st->array + st->capacity * sizeof(Elem_t)) = KANAREYKA_R;
+        *get_array_kanareyka_r(st) = KANAREYKA_R;
+        //*(long long *)((char*)st->array + st->capacity * sizeof(Elem_t)) = KANAREYKA_R;
     }
 }
 
@@ -74,6 +114,7 @@ void dynamic_stack_push(struct dynamic_stack *st, Elem_t el) {
     ASSERT_OK(st);
     dynamic_stack_increase_capacity(st);
     st->array[st->size++] = el;
+    st->hash = dynamic_stack_count_hash(st);
 }
 
 void dynamic_stack_pop(struct dynamic_stack *st) {
@@ -81,6 +122,7 @@ void dynamic_stack_pop(struct dynamic_stack *st) {
     assert(st->size > 0);
     //dynamic_stack_decrease_capacity(st);
     st->size--;
+    st->hash = dynamic_stack_count_hash(st);
 }
 
 
@@ -93,12 +135,21 @@ int dynamic_stack_get_top(struct dynamic_stack *st) {
 void dynamic_stack_clear(struct dynamic_stack *st) {
     ASSERT_OK(st);
     st->size = 0;
+    st->hash = dynamic_stack_count_hash(st);
 }
 
 void dynamic_stack_destroy(struct dynamic_stack *st) {
     ASSERT_OK(st);
     free(st->array);
     free(st);
+}
+
+long long* get_array_kanareyka_l(struct dynamic_stack *st) {
+    return (long long*)((char*)st->array - sizeof(long long));
+}
+
+long long* get_array_kanareyka_r(struct dynamic_stack *st) {
+    return (long long *)((char*)st->array + st->capacity * sizeof(Elem_t));
 }
 
 StackErrors dynamic_stack_ok(struct dynamic_stack *st) {
@@ -115,11 +166,11 @@ StackErrors dynamic_stack_ok(struct dynamic_stack *st) {
         return SIZEERROR;
     }
 
-    if (*(long long*)((char*)st->array - sizeof(long long)) != KANAREYKA_L) {
+    if (*get_array_kanareyka_l(st) != KANAREYKA_L) {
         return KANAREYKAERROR;
     }
 
-    if (*(long long *)((char*)st->array + st->capacity * sizeof(Elem_t)) != KANAREYKA_R) {
+    if (*get_array_kanareyka_r(st) != KANAREYKA_R) {
         return KANAREYKAERROR;
     }
 
@@ -129,6 +180,10 @@ StackErrors dynamic_stack_ok(struct dynamic_stack *st) {
 
     if (st->kanareyka_r != KANAREYKA_R_ST) {
         return KANAREYKAERROR;
+    }
+
+    if (dynamic_stack_check_hash(st) != STACKOK) {
+        return HASHERROR;
     }
 
 
@@ -156,7 +211,7 @@ void dynamic_stack_dump(struct dynamic_stack *st) {
         fprintf(output, "\tmode            = %d  \n",   st->mode);
         fprintf(output, "\tRIGHT KANAREYKA = %8X ", st->kanareyka_r); fprintf(output, "(must be %X)\n", KANAREYKA_R_ST);
         fprintf(output, "\tarray [%p] {\n", st->array);
-        fprintf(output, "\t\tLEFT  KANAREYKA = %8X ", *(long long*)((char*)st->array - sizeof(long long)));
+        fprintf(output, "\t\tLEFT  KANAREYKA = %8X ", *get_array_kanareyka_l(st));
         fprintf(output, "(must be %X)\n", KANAREYKA_L);
         for (int i = 0; i < st->capacity; ++i) {
             if (i < st->size) {
@@ -165,6 +220,8 @@ void dynamic_stack_dump(struct dynamic_stack *st) {
                 fprintf(output, "\t\t[%d] = %lf (!!POISON!!)\n", i, st->array[i]);
             }
         }
+        fprintf(output, "\t\tRIGHT ARRAY KANAREYKA = %8X ", *get_array_kanareyka_r(st));
+        fprintf(output, "(must be %X)\n", KANAREYKA_R);
         fprintf(output, "\t}\n");
         fprintf(output, "}\n");
     } else {
@@ -189,7 +246,7 @@ void dynamic_stack_dump(struct dynamic_stack *st) {
         fprintf(output, "\tmode            = %d  \n",   st->mode);
         fprintf(output, "\tRIGHT KANAREYKA = %8X ", st->kanareyka_r); fprintf(output, "(must be %X)\n", KANAREYKA_R_ST);
         fprintf(output, "\tarray [%p] {\n", st->array);
-        fprintf(output, "\t\tLEFT  ARRAY KANAREYKA = %8X ", *(long long*)((char*)st->array - sizeof(long long)));
+        fprintf(output, "\t\tLEFT  ARRAY KANAREYKA = %8X ", *get_array_kanareyka_l(st));
         fprintf(output, "(must be %X)\n", KANAREYKA_L);
         for (int i = 0; i < st->capacity; ++i) {
             if (i < st->size) {
@@ -198,7 +255,7 @@ void dynamic_stack_dump(struct dynamic_stack *st) {
                 fprintf(output, "\t\t[%d] = %lf (!!POISON!!)\n", i, st->array[i]);
             }
         }
-        fprintf(output, "\t\tRIGHT ARRAY KANAREYKA = %8X ", *(long long *)((char*)st->array + st->capacity * sizeof(Elem_t)));
+        fprintf(output, "\t\tRIGHT ARRAY KANAREYKA = %8X ", *get_array_kanareyka_r(st));
         fprintf(output, "(must be %X)\n", KANAREYKA_R);
         fprintf(output, "\t}\n");
         fprintf(output, "}\n");

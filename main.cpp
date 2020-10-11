@@ -2,6 +2,7 @@
 
 int main() {
     struct dynamic_stack *st = dynamic_stack_construct(20, 20, 0, MODE_PLUS_DELTA);
+    struct dynamic_stack *st1 =
 
     int n = 10;
     //dynamic_stack_push(st, 1);

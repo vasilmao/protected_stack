@@ -21,7 +21,8 @@ enum StackErrors {
     POISONERROR,
     SIZEERROR,
     CAPACITYERROR,
-    KANAREYKAERROR
+    KANAREYKAERROR,
+    HASHERROR
 };
 
 
@@ -41,6 +42,7 @@ struct dynamic_stack {
     uint64_t coefficient;
     float constant;
     char mode;
+    long long hash;
     long long kanareyka_r;
 };
 
@@ -64,3 +66,7 @@ void dynamic_stack_destroy(struct dynamic_stack *st);
 void dynamic_stack_dump(struct dynamic_stack *st);
 
 StackErrors dynamic_stack_ok(struct dynamic_stack *st);
+
+long long* get_array_kanareyka_l(struct dynamic_stack *st);
+
+long long* get_array_kanareyka_r(struct dynamic_stack *st);
