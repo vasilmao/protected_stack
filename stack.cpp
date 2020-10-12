@@ -21,8 +21,20 @@ uint64_t dynamic_stack_count_hash(struct dynamic_stack *st);
 
 StackErrors dynamic_stack_check_hash(struct dynamic_stack* st);
 
+//‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
+//! cyclically rolls every byte from ptr to ptr+size
+//!
+//! @param[in] ptr      - pointer to first byte
+//! @param[in] size     - num of bytes to roll
+//‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
 void rol(void* ptr, uint64_t size);
 
+//‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
+//! same as rol, but in an underside
+//!
+//! @param[in] ptr      - pointer to first byte
+//! @param[in] size     - num of bytes to roll
+//‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
 void ror(void* ptr, uint64_t size);
 
 uint64_t dynamic_stack_count_hash(struct dynamic_stack *st) {
