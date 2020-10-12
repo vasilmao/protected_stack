@@ -5,12 +5,13 @@ int main() {
 
     int n = 10;
     //dynamic_stack_push(st, 1);
-    printf("yes\n");
     for(int i = 0; i < 5; ++i) {
         dynamic_stack_push(st, i);
         //printf("%d YAY\n", i);
     }
-    *((char*)st + 30) = 5;
+    //*((char*)st + 1) = 5;
+    //st->array[5] = 0;
+    st->capacity = -1;
     ASSERT_OK(st);
     //printf("yoy\n");
     //st->size = 30;

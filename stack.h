@@ -49,10 +49,6 @@ struct dynamic_stack {
 
 struct dynamic_stack *dynamic_stack_construct(uint64_t start_size, uint64_t delta, float constant, char mode);
 
-void dynamic_stack_increase_capacity(struct dynamic_stack *st);
-
-void dynamic_stack_decrease_capacity(struct dynamic_stack *st);
-
 void dynamic_stack_push(struct dynamic_stack *st, Elem_t el);
 
 void dynamic_stack_pop(struct dynamic_stack *st);
@@ -66,7 +62,3 @@ void dynamic_stack_destroy(struct dynamic_stack *st);
 void dynamic_stack_dump(struct dynamic_stack *st);
 
 StackErrors dynamic_stack_ok(struct dynamic_stack *st);
-
-long long* get_array_kanareyka_l(struct dynamic_stack *st);
-
-long long* get_array_kanareyka_r(struct dynamic_stack *st);

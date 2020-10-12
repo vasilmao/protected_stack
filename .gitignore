@@ -50,3 +50,6 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+ff.bat
+trie.cpp
+stackdump.txt
