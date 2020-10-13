@@ -38,9 +38,8 @@ struct dynamic_stack {
     Elem_t* array;
     uint64_t size;
     uint64_t capacity;
-    uint64_t delta;
-    uint64_t coefficient;
-    float constant;
+    uint64_t resize_delta;
+    float resize_constant;
     char mode;
     long long hash;
     long long kanareyka_r;
